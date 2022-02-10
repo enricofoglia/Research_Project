@@ -1,4 +1,4 @@
-# Research_Project
-Authors: Maciej Michalow, Enrico Foglia\\
-Supervisors: Jardin Thierry, Bauerheim Michael, Colombo Michele\\
+# Research Project
+Authors: Maciej Michalow, Enrico Foglia\n
+Supervisors: Jardin Thierry, Bauerheim Michael, Colombo Michele\n
 ISAE-SUPAERO MAE research  project
