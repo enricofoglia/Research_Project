@@ -32,8 +32,22 @@ A_tilde = np.array([[-1.158, -0.3052, -0.02028, -2.325E-4],[1, 0,0,0],[0, 1, 0, 
 B_tilde = np.array([[1, 0,0,0]]).T
 C_tilde = np.array([[0.124, 0.08667, 0.008805, 1.156E-4]])
 D_tilde = np.array([[0.5]])
+
+a = 0.25 # point of application of the moments 
+C1 = np.pi
+C2 = 2*np.pi
+
+A = np.block([[A_tilde, C2*B_tilde, C2*(0.5 - a)*B_tilde],
+              [0, 0, 1], [0, 0, 0]])
+B = np.array([[0, 0], [1, 0], [0, 0], [0, 1]])
+C = np.block([[C_tilde, C2*D_tilde, C1 + C2*(0.5 - a)*D_tilde]])
+D = np.array([[C1, -C1*a]])
+
 def u(t):
     return np.array([0])
+
+
+
 
 t = np.linspace(0,10)
 Th = StateSpace(A_tilde, B_tilde, C_tilde, D_tilde)
