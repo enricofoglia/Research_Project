@@ -67,3 +67,55 @@ mag, phase, omega = control.bode_plot(
 plt.suptitle(
     'Transfer function of $C_L$ wrt $\ddot{h}$ (variable $\overline{s}$)')
 plt.show()
+
+# sine response - pitching
+amplitude = 0.01  # [deg/s^2]
+frequency = 1e2  # [Hz]
+t_series = np.linspace(0, 100, 1000)  # [s]
+u_series = amplitude*np.pi/180.*np.sin(2*np.pi*frequency*t_series)
+response = control.forced_response(C_L_alpha_bis, t_series, u_series)
+
+plt.plot(response.time, response.outputs)
+plt.title(
+    'Response to a {:.1e}'.format(frequency) + '[Hz] sine $\\ddot{\\alpha}$ input of amplitude ' + '{:.1e} $[deg/s^2]$'.format(amplitude))
+plt.xlabel('t [s]')
+plt.ylabel('$C_L$ $[-]$')
+plt.show()
+
+# sine response - plunging
+amplitude = 0.01  # [m/s^2]
+frequency = 1e2  # [Hz]
+t_series = np.linspace(0, 100, 1000)  # [s]
+u_series = amplitude*np.sin(2*np.pi*frequency*t_series)
+response = control.forced_response(C_L_h_bis, t_series, u_series)
+
+plt.plot(response.time, response.outputs)
+plt.title(
+    'Response to a {:.1e}'.format(frequency) + '[Hz] sine $\\ddot{h}$ input of amplitude ' + '{:.1e} $[h/s^2]$'.format(amplitude))
+plt.xlabel('t [s]')
+plt.ylabel('$C_L$ $[-]$')
+plt.show()
+
+# impulse response - pitching
+amplitude = np.pi/36  # [deg/s^2]
+t_series = np.linspace(0, 20, 1000)
+response = control.impulse_response(amplitude*C_L_alpha_bis, T=t_series)
+
+plt.plot(response.time, response.outputs)
+plt.title(
+    'Response to an impulse $\\ddot{\\alpha}$ input of amplitude ' + '{:.1e} $[deg/s^2]$'.format(amplitude))
+plt.xlabel('t [s]')
+plt.ylabel('$C_L$ $[-]$')
+plt.show()
+
+# impulse response - plunging
+amplitude = 0.1  # [m/s^2]
+t_series = np.linspace(0, 20, 1000)
+response = control.impulse_response(amplitude*C_L_h_bis, T=t_series)
+
+plt.plot(response.time, response.outputs)
+plt.title(
+    'Response to an impulse $\\ddot{h}$ input of amplitude ' + '{:.1e} $[m/s^2]$'.format(amplitude))
+plt.xlabel('t [s]')
+plt.ylabel('$C_L$ $[-]$')
+plt.show()
