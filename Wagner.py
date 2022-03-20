@@ -18,7 +18,7 @@ is the the best performing and allows for infinite domain, and quadrature).
 """
 import numpy as np
 from scipy.special import jv, yn # Bessel functions
-from scipy.integrate import trapezoid, quad
+from scipy.integrate import quad
 
 def Wagner(t, large_times = False): 
     if large_times == False:
