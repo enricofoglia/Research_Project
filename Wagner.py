@@ -15,6 +15,8 @@ In particular the equation shown in the article to be the best behaved is perfor
 fails somewhat for larger t. It is probably do to the integration approach (I have tried quad, that 
 is the the best performing and allows for infinite domain, and quadrature).
 
+webplotdigitalizer
+
 """
 import numpy as np
 from scipy.special import jv, yn # Bessel functions
@@ -56,63 +58,90 @@ def C_L_sinus(amplitude_alpha, amplitude_h, omega, x_pitch, t, b = 1, U_inf = 1,
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
+    PLOT_FLAG = input('Do you want to plot the results? [y/n]: ')
+    if not (PLOT_FLAG in 'yn'):
+        print('Invalid input.\n')
+        PLOT_FLAG = input('Do you want to plot the results? [y/n]: ')
+
+    SAVE_FLAG = input('Do you want to save the data to a file? [y/n]: ')
+    if not(SAVE_FLAG in 'yn'):
+        print('Invalid input.\n')
+        SAVE_FLAG = input('Do you want to plot the results? [y/n]: ')
+
     amplitude_alpha = 0.1
     amplitude_h = 0.1
-    omega = 1e2*2*np.pi # frequency of the exitation = 0.1 Hz
+    omega = 1e-1*2*np.pi # frequency of the exitation = 0.1 Hz
     x_pitch = 0.6 # position of the axis of rotation
     
 
-    t = np.linspace(0,0.1, 1000)
+    t = np.linspace(0,100, 1000)
     b = 1
     U_inf = 1
     h_dotdot = np.real(amplitude_h*np.exp(1j*omega*b/U_inf*t)) # vertical acceleration, normalized with the semichord [-]
     h_dot = 1e3*np.real(1/(1j*omega*b/U_inf)*h_dotdot) # vertical velocity [-]
     
+    # data for plotting Theodorsen function
     CL = C_L_sinus(amplitude_alpha, amplitude_h, omega, x_pitch, t)
-    
-    fig, ax = plt.subplots(figsize=(10,4), tight_layout = True)
-    ax.plot(t,CL)
-    ax.plot(t, h_dotdot)
-    ax.set_xlabel(r'$\tau = tb/U_{\infty}$')
-    ax.set_ylabel(r'$C_L(\tau)$')
-    ax.set_title(f'$C_L$ for a sinusoidal velocity imput with reduced frequency f = {omega/2/np.pi}')
-    ax.grid(True)
-    ax.legend(['$C_L$', '$\ddot{h}$'])
-    
     k = np.logspace(-3,2,1000)
+
+    # data to plot Wagner function
+    if PLOT_FLAG == 'y':
+        T = np.logspace(-1,4, num = 100)
+        W = np.zeros(len(T))
+        for i in range(len(T)):
+            t = T[i]
+            if t<=100:
+                W[i] = Wagner(t, large_times = False)
+            else:
+                W[i] = Wagner(t, large_times = True)   
     
-    fig2, ax2 = plt.subplots()
-    ax2.plot(k, np.real(Theodorsen(k)))
-    ax2.plot(k, np.imag(Theodorsen(k)))
-    ax2.set_xlabel(r'$k = \omega b/U_{\infty}$')
-    ax2.set_xscale('log')
-    ax2.set_ylabel('C(k)')
-    ax2.set_title('Real and imaginary part of the Theodorsen function C(k)')
-    ax2.legend([r'$\mathfrak{R}[C(k)]$',r'$\mathfrak{I}[C(k)]$'])
-    ax2.grid(True)
+    # generate data for wagner_SINDy.py
+    if SAVE_FLAG == 'y':
+        T = np.linspace(0,5000, 1000) # make sure to have a 
+        W = np.zeros(len(T))
+        for i in range(len(T)):
+            t = T[i]
+            if t<=100:
+                W[i] = Wagner(t, large_times = False)
+            else:
+                if i%100 == 0:
+                    print(f'Passed {i} iterations\n')
+                W[i] = Wagner(t, large_times = True)   
+
+        wagner_data = np.column_stack((T,W))
+        np.savetxt('wagner_data.dat', wagner_data) #19/04/2022: saving to data file to be used in SINDy module 
     
-    plt.show()
-    
-    
-    # W = []
-    # T = np.logspace(-1,3, num = 100)
-    # for t in T:
-    #     if t<=100:
-    #         W.append(Wagner(t, large_times = False))
-    #     else:
-    #         W.append(Wagner(t, large_times = True))
+    # Plotting
+    if PLOT_FLAG == 'y':
+        fig, ax = plt.subplots(figsize=(10,4), tight_layout = True)
+        ax.plot(t,CL)
+        ax.plot(t, h_dotdot)
+        ax.set_xlabel(r'$\tau = tb/U_{\infty}$')
+        ax.set_ylabel(r'$C_L(\tau)$')
+        ax.set_title(f'$C_L$ for a sinusoidal velocity imput with reduced frequency f = {omega/2/np.pi}')
+        ax.grid(True)
+        ax.legend(['$C_L$', '$\ddot{h}$'])
         
-    # fig, ax = plt.subplots()
-    # ax.plot(T,np.ones(len(W))-W)
-    # ax.set_yscale('log')
-    # ax.set_xscale('log')
-    # ax.grid(True)
-    # ax.set_xlabel('time')
-    # ax.set_ylabel('$1-\phi (t)$')
-    # ax.set_title('Wagner function')
-    # plt.show()
-    
-    
-    
+        fig2, ax2 = plt.subplots()
+        ax2.plot(k, np.real(Theodorsen(k)))
+        ax2.plot(k, np.imag(Theodorsen(k)))
+        ax2.set_xlabel(r'$k = \omega b/U_{\infty}$')
+        ax2.set_xscale('log')
+        ax2.set_ylabel('C(k)')
+        ax2.set_title('Real and imaginary part of the Theodorsen function C(k)')
+        ax2.legend([r'$\mathfrak{R}[C(k)]$',r'$\mathfrak{I}[C(k)]$'])
+        ax2.grid(True)
+        
+        # plt.show()
+
+        fig, ax = plt.subplots()
+        ax.plot(T,np.ones(len(W))-W)
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        ax.grid(True)
+        ax.set_xlabel('time')
+        ax.set_ylabel('$1-\phi (t)$')
+        ax.set_title('Wagner function')
+        plt.show()
     
     
