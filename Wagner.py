@@ -28,10 +28,10 @@ def hankel2(n,k):
 def Wagner(t, large_times = False): 
     if large_times == False:
         G= lambda k: (jv(1,k)*(jv(1,k)+yn(0,k))+yn(1,k)*(yn(1,k)-jv(0,k)))/((jv(1,k) + yn(0,k))**2 + (yn(1,k) - jv(0,k))**2)
-        phi = 1/2 + 2/np.pi*quad(lambda k: 1/k*(G(k)-1/2)*np.sin(k*t), 0, 10, limit = int(100*t)+50)[0]
+        phi = 1/2 + 2/np.pi*quad(lambda k: 1/k*(G(k)-1/2)*np.sin(k*t), 0, 100, limit = int(100*t)+50)[0]
     else:    
         G= lambda k: (yn(1,k)*yn(0,k)+jv(1,k)*jv(0,k))/((jv(1,k) + yn(0,k))**2 + (yn(1,k) - jv(0,k))**2)
-        phi = 1 - 2/np.pi*quad(lambda k: 1/k*G(k)*np.cos(k*t), 0, 10, limit = int(100*t))[0]
+        phi = 1 - 2/np.pi*quad(lambda k: 1/k*G(k)*np.cos(k*t), 0, 100, limit = int(100*t))[0]
     return phi
 
 def Theodorsen(k):
@@ -74,14 +74,14 @@ if __name__ == '__main__':
     x_pitch = 0.6 # position of the axis of rotation
     
 
-    t = np.linspace(0,100, 1000)
+    tt = np.linspace(0,100, 1000)
     b = 1
     U_inf = 1
-    h_dotdot = np.real(amplitude_h*np.exp(1j*omega*b/U_inf*t)) # vertical acceleration, normalized with the semichord [-]
+    h_dotdot = np.real(amplitude_h*np.exp(1j*omega*b/U_inf*tt)) # vertical acceleration, normalized with the semichord [-]
     h_dot = 1e3*np.real(1/(1j*omega*b/U_inf)*h_dotdot) # vertical velocity [-]
     
     # data for plotting Theodorsen function
-    CL = C_L_sinus(amplitude_alpha, amplitude_h, omega, x_pitch, t)
+    CL = C_L_sinus(amplitude_alpha, amplitude_h, omega, x_pitch, tt)
     k = np.logspace(-3,2,1000)
 
     # data to plot Wagner function
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     
     # generate data for wagner_SINDy.py
     if SAVE_FLAG == 'y':
-        T = np.linspace(0,5000, 1000) # make sure to have a 
+        T = np.linspace(0,500, 2000) # make sure to have a 
         W = np.zeros(len(T))
         for i in range(len(T)):
             t = T[i]
@@ -105,8 +105,8 @@ if __name__ == '__main__':
                 W[i] = Wagner(t, large_times = False)
             else:
                 if i%100 == 0:
-                    print(f'Passed {i} iterations\n')
-                W[i] = Wagner(t, large_times = True)   
+                    print(f'Passed {i} time steps\n')
+                W[i] = Wagner(t, large_times = False)   
 
         wagner_data = np.column_stack((T,W))
         np.savetxt('wagner_data.dat', wagner_data) #19/04/2022: saving to data file to be used in SINDy module 
@@ -114,8 +114,8 @@ if __name__ == '__main__':
     # Plotting
     if PLOT_FLAG == 'y':
         fig, ax = plt.subplots(figsize=(10,4), tight_layout = True)
-        ax.plot(t,CL)
-        ax.plot(t, h_dotdot)
+        ax.plot(tt,CL)
+        ax.plot(tt, h_dotdot)
         ax.set_xlabel(r'$\tau = tb/U_{\infty}$')
         ax.set_ylabel(r'$C_L(\tau)$')
         ax.set_title(f'$C_L$ for a sinusoidal velocity imput with reduced frequency f = {omega/2/np.pi}')
