@@ -212,10 +212,12 @@ if __name__ == '__main__':
 
     # response to harmonic alpha" and square h" signals
     T = 5
+    phase = T/2
+    amplitude = 0.1/T
     # square wave
-    u_h = np.array([0.01 if np.floor(ti/T+T/2) %
-                   2 == 0 else -0.01 for ti in t])
+    u_h = np.array([amplitude if np.floor((ti+phase)/T+T/2) %
+                   2 == 0 else -amplitude for ti in t])
     output = control.forced_response(
-        theodorsen_full_sys, T=t, U=np.vstack((u_alpha, u_h)))
-    data_alpha_sine = TheodorsenTimeResponse(output, inputs='alpha')
-    data_alpha_sine.phase_plot(state='alpha_e')
+        theodorsen_full_sys, T=t, U=np.vstack((u_h, u_alpha)))
+    data_both = TheodorsenTimeResponse(output, inputs='alpha')
+    data_both.phase_plot(state='alpha_e')
