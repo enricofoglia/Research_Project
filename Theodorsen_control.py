@@ -1,128 +1,192 @@
 """
-Created on Wed Mar 16 22:49:48 2022
+Created on Mon May 16 2022
 
 @author: Maciej Michałów
 
-This script demonstrates a functional approximated implementation of the original
+This library provides a functional approximated implementation of the original
 Theodorsen model, using the Python control systems library and the Python Control
 Systems Library(https://python-control.readthedocs.io/en/0.9.1/).
 
-The system is modelled using a transfer function approach; all equations have been
+The system is modelled using a state-space model approach; all equations have been
 adapted from S. L. Brunton and C. W. Rowley, ‘Empirical state-space representations
 for Theodorsen’s lift model’, Journal of Fluids and Structures, vol. 38, pp. 174–186,
 april 2013, doi: 10.1016/j.jfluidstructs.2012.10.005.
 
-TODO: This script should be converted to a module with functions for generating data
-based on given parameters.
-
-"""
+At the bottom, an example is provided."""
 
 import numpy as np
 import matplotlib.pyplot as plt
 import control  # https://python-control.readthedocs.io/en/0.9.1/
 
-# geometric parameters (TODO check the relationships and dimension of all of them)
-b = 1  # half-chord length of airfoil [m]
-c = 2*b  # chord length of the airfoil [m]
-x_pitch = 1.0  # pitch axis wrt to the chord length, measured from the leading edge [-]
-a = 2*x_pitch-1  # pitch axis with respect to 1/2 chord, normalized with the semichord [-]
 
-# aerodynamic parameters
-nu = 2e-5
-C_1 = np.pi  # [1/rad]
-C_2 = 2*np.pi  # [1/rad]
-U_inf = 1  # [m/s]
-Re = c*U_inf/nu  # Reynolds number (just informative)
+class AirfoilGeometry:
+    '''Class representing a given thin airfoil geometry.'''
 
-# Theodorsen transfer function (balanced truncation approximation)
-C_Theodorsen = control.tf(
-    [0.5, 0.703, 0.2393, 0.01894, 2.318e-4], [1, 1.158, 0.3052, 0.02028, 2.325e-4])
+    def __init__(self, a, b, C_1=np.pi, C_2=2*np.pi):
+        self.a = a  # pitch axis wrt to 1/2-chord
+        self.b = b  # half-chord length of the airfoi
+        self.C_1 = C_1  # added-mass coefficient
+        self.C_2 = C_2  # steady-state lift slope (dC_L/dα)
 
-# Auxiliary tf for ease of writing
-s = control.tf('s')
 
-# Transfer function of C_L wrt alpha"
-C_L_alpha_bis = C_1*(1/s - a) + C_2*(1/s**2+1/s*(1/2-a)) * \
-    C_Theodorsen
+def theodorsen_function_balanced_truncation_ss():
+    '''State-space approximation of the Theodorsen function.
 
-# Transfer function of C_L wrt h"
-C_L_h_bis = C_1 + C_2/s*C_Theodorsen
+        Output:
+        sys - a control.StateSpace representing the Theodorsen function approximation
 
-# Bode plot of the Theodorsen transfer function
-plt.figure(1)
-mag, phase, omega = control.bode_plot(
-    C_Theodorsen, dB=True, omega_limits=[5e-3, 1e2])
-plt.suptitle('$C(\overline{s})$')
-# plt.show()
+        For reference on the contro.StateSpace class, see:
+        https://python-control.readthedocs.io/en/0.9.1/generated/control.StateSpace.html#control.StateSpace'''
+    dim = 4
+    A = np.zeros((dim, dim))
+    A[0, :] = np.array([-1.158, -0.3052, -0.02028, -2.325e-4])
+    A[1:4, 0:3] = np.eye(3)
+    B = np.array([1., 0., 0., 0.])
+    C = np.array([0.124, 0.08667, 0.008805, 1.156e-4])
+    D = np.array(0.5)
+    sys = control.ss(A, B, C, D)
+    return sys
 
-# Bode plot of the α" transfer function
-plt.figure(2)
-mag, phase, omega = control.bode_plot(
-    C_L_alpha_bis, dB=True, omega_limits=[5e-3, 1e3])
-plt.suptitle(
-    'Transfer function of $C_L$ wrt $\ddot{\\alpha}}$ (variable $\overline{s}$); ' + '$x/c = {:.1f}$'.format(x_pitch))
-# plt.show()
 
-# Bode plot of the h" transfer function
-plt.figure(3)
-mag, phase, omega = control.bode_plot(
-    C_L_h_bis, dB=True, omega_limits=[5e-3, 1e2])
-plt.suptitle(
-    'Transfer function of $C_L$ wrt $\ddot{h}$ (variable $\overline{s}$)')
-# plt.show()
+def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both'):
+    '''State-space approximation of the Theodorsen non-dimensionalised unsteady lift model.
+    Inputs:
+    airfoil - an AirfoilGeometry object with dimensions and aerodynamic coefficients of the airfoil
+    theodorsen_sys - a state-space model of the Theodorsen function
+    inputs - the inputs to the system: either 'h', 'alpha' or (by default) 'both'
 
-# sine response - pitching
-amplitude = 0.01  # [deg/s^2]
-frequency = 1e-1  # [Hz]
-t_series = np.linspace(0, 1000, 1000)  # [s]
-u_series = amplitude*np.pi/180.*np.sin(2*np.pi*frequency*t_series)
-response = control.forced_response(C_L_alpha_bis, t_series, u_series)
+    Output:
+    sys - a control.StateSpace representing the Theodorsen function approximation
 
-plt.figure(4)
-plt.plot(response.time, response.outputs)
-plt.title(
-    'Response to a {:.1e}'.format(frequency) + '[Hz] sine $\\ddot{\\alpha}$ input of amplitude ' + '{:.1e} $[deg/s^2]$'.format(amplitude))
-plt.xlabel('t [s]')
-plt.ylabel('$C_L$ $[-]$')
-# plt.show()
+    For reference on the contro.StateSpace class, see:
+    https://python-control.readthedocs.io/en/0.9.1/generated/control.StateSpace.html#control.StateSpace'''
 
-# sine response - plunging
-amplitude = 0.01  # [m/s^2]
-frequency = 1e2  # [Hz]
-t_series = np.linspace(0, 100, 1000)  # [s]
-u_series = amplitude*np.sin(2*np.pi*frequency*t_series)
-response = control.forced_response(C_L_h_bis, t_series, u_series)
+    dim_theodorsen = theodorsen_sys.nstates
+    A = np.hstack((theodorsen_sys.A, theodorsen_sys.B*airfoil.C_2, theodorsen_sys.B *
+                  airfoil.C_2, theodorsen_sys.B*airfoil.C_2*(1-2*airfoil.a)/2))
+    A = np.vstack((A, np.zeros((3, dim_theodorsen+3))))
+    A[-2, -1] = 1
+    B = np.zeros((dim_theodorsen+3, 2))
+    B[dim_theodorsen, 0] = 1
+    B[-1, -1] = 1
+    C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2, theodorsen_sys.D*airfoil.C_2,
+                   airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
+    D = np.array([airfoil.C_1, -airfoil.C_1*airfoil.a])
 
-plt.figure(5)
-plt.plot(response.time, response.outputs)
-plt.title(
-    'Response to a {:.1e}'.format(frequency) + '[Hz] sine $\\ddot{h}$ input of amplitude ' + '{:.1e} $[h/s^2]$'.format(amplitude))
-plt.xlabel('t [s]')
-plt.ylabel('$C_L$ $[-]$')
-# plt.show()
+    if inputs == 'both':
+        # LTI model of the Theodorsen model with h" and α" inputs
+        sys = control.ss(A, B, C, D)
+    elif inputs == 'alpha':
+        # LTI model of the Theodorsen model limited to α" input
+        sys = control.ss(A, B[:, 1], C, D[1])
+    elif inputs == 'h':
+        # LTI model of the Theodorsen model limited to h" input
+        sys = control.ss(A, B[:, 0], C, D[0])
 
-# impulse response - pitching
-amplitude = np.pi/36  # [deg/s^2]
-t_series = np.linspace(0, 20, 1000)
-response = control.impulse_response(amplitude*C_L_alpha_bis, T=t_series)
+    return sys
 
-plt.figure(6)
-plt.plot(response.time, response.outputs)
-plt.title(
-    'Response to an impulse $\\ddot{\\alpha}$ input of amplitude ' + '{:.1e} $[deg/s^2]$'.format(amplitude))
-plt.xlabel('t [s]')
-plt.ylabel('$C_L$ $[-]$')
-# plt.show()
 
-# impulse response - plunging
-amplitude = 0.1  # [m/s^2]
-t_series = np.linspace(0, 20, 1000)
-response = control.impulse_response(amplitude*C_L_h_bis, T=t_series)
+class TheodorsenTimeResponse:
+    '''Class for postprocessing of Theodorsen model output data.'''
 
-plt.figure(7)
-plt.plot(response.time, response.outputs)
-plt.title(
-    'Response to an impulse $\\ddot{h}$ input of amplitude ' + '{:.1e} $[m/s^2]$'.format(amplitude))
-plt.xlabel('t [s]')
-plt.ylabel('$C_L$ $[-]$')
-plt.show()
+    def __init__(self, output, inputs='both'):
+        '''State-space approximation of the Theodorsen non-dimensionalised unsteady lift model.
+        Inputs:
+        output - a control.TimeResponseData object, generated by a simulation
+        inputs - the inputs to the system: either 'h', 'alpha' or (by default) 'both'''
+        self.t = output.time
+        self.h_dot = output.states[4]
+        self.alpha = output.states[5]
+        self.alpha_dot = output.states[6]
+        self.alpha_e = self.alpha + self.h_dot
+        self.C_L = output.outputs.T
+
+        if inputs == 'both' or inputs == 'h':
+            self.h_ddot = output.inputs[0]
+        else:
+            self.alpha_ddot = output.inputs[0]
+        if inputs == 'both':
+            self.alpha_ddot = output.inputs[1]
+
+    def state_plot(self):
+        plt.plot(self.t, self.C_L, label=r'$C_L [-]$')
+        plt.plot(self.t, self.h_dot, label=r'$\dot{h} [m/s]$')
+        plt.plot(self.t, self.alpha, label=r'$\alpha [rad]$')
+        plt.plot(self.t, self.alpha_e, label=r'$\alpha_e [rad]$')
+        plt.plot(self.t, self.alpha_dot, label=r'$\dot{\alpha} [rad/s]$')
+        plt.title('Time response of unsteady lift - states')
+        plt.xlabel('$t$')
+        plt.legend()
+        plt.show()
+
+    def phase_plot(self, state='alpha_e'):
+        states = {'alpha_e': self.alpha_e,
+                  'alpha': self.alpha, 'h_dot': self.h_dot}
+        labels = {'alpha_e': '$\\alpha_e$',
+                  'alpha': '$\\alpha$', 'h_dot': '$\dot{h}$'}
+        plt.plot(states[state], self.C_L)
+        plt.title('Phase plot of unsteady lift')
+        plt.xlabel(labels[state])
+        plt.ylabel('$C_L$')
+        plt.show()
+
+    def io_plot(self):
+        plt.plot(self.t, self.C_L, label=r'$C_L [-]$')
+        if self.inputs == 'h' or self.inputs == 'both':
+            plt.plot(self.t, self.h_ddot, label=r'$\ddot{h} [rad/s^2]$')
+        if self.inputs == 'alpha' or self.inputs == 'both':
+            plt.plot(self.t, self.alpha_ddot,
+                     label=r'$\ddot{\alpha} [rad/s^2]$')
+        plt.title('Time response of unsteady lift - inputs')
+        plt.xlabel('$t$')
+        plt.legend()
+        plt.show()
+
+
+# example script using the library
+if __name__ == '__main__':
+    a = 1/2  # pitch axis wrt to 1/2-chord
+    b = 1  # half-chord length of the airfoil
+    airfoil = AirfoilGeometry(a=a, b=b)  # default values of C_1 and C_2 used
+
+    # the balanced truncation Theodorsen function approximation
+    theodorsen_function_sys = theodorsen_function_balanced_truncation_ss()
+    control.bode_plot(theodorsen_function_sys, dB=True,
+                      omega_limits=[1e-2, 1e2])
+    plt.show()
+
+    theodorsen_full_sys = unsteady_lift_ss(airfoil, theodorsen_function_sys)
+    theodorsen_alpha_sys = unsteady_lift_ss(
+        airfoil, theodorsen_function_sys, inputs='alpha')
+    theodorsen_h_sys = unsteady_lift_ss(
+        airfoil, theodorsen_function_sys, inputs='h')
+
+    # bode plots of the single-input, single-output systems
+    control.bode_plot(theodorsen_alpha_sys, dB=True, omega_limits=[1e-3, 1e3])
+    plt.show()
+    control.bode_plot(theodorsen_h_sys, dB=True, omega_limits=[1e-3, 1e3])
+    plt.show()
+
+    # response to an h" impulse
+    t = np.linspace(0, 50, 1000)
+    output = control.impulse_response(theodorsen_h_sys, T=t)
+    data_h_impulse = TheodorsenTimeResponse(output, inputs='h')
+    data_h_impulse.state_plot()
+
+    # response to a harmonic alpha" signal
+    omega = 1
+    amplitude = 0.1
+    phase = np.pi/2
+    u_alpha = amplitude*np.sin(omega*t + phase)
+    output = control.forced_response(theodorsen_alpha_sys, T=t, U=u_alpha)
+    data_alpha_sine = TheodorsenTimeResponse(output, inputs='alpha')
+    data_alpha_sine.phase_plot(state='alpha')
+
+    # response to harmonic alpha" and square h" signals
+    T = 5
+    u_h = np.array([0.01 if np.floor(ti/T+T/2) %
+                   2 == 0 else -0.01 for ti in t])
+    output = control.forced_response(
+        theodorsen_full_sys, T=t, U=np.vstack((u_alpha, u_h)))
+    data_alpha_sine = TheodorsenTimeResponse(output, inputs='alpha')
+    data_alpha_sine.phase_plot(state='alpha_e')
