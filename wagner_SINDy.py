@@ -132,6 +132,14 @@ t = cleaned_wagner_data[:,0]
 x = 1 - cleaned_wagner_data[:,1] # normalized, steady-state-subtracted lift (see reference [1])
 x = np.array([x]).T
 
+# calculating L(t) pdf
+nb_bins = 100 # number of bins
+fig_h, ax_h = plt.subplots()
+ax_h.hist(cleaned_wagner_data[:,1], nb_bins, density = True)
+ax_h.set_xlabel('L(t)')
+ax_h.set_ylabel('p(L(t))')
+ax_h.set_title('L(t) p.d.f.')
+
 fig1, ax1 = plt.subplots()
 fig2, ax2 = plt.subplots()
 fig3, ax3 = plt.subplots()
