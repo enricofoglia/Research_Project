@@ -113,12 +113,14 @@ class TheodorsenTimeResponse:
         self.alpha_dot = output.states[6]
         self.alpha_e = self.alpha + self.h_dot
         self.C_L = output.outputs.T
+        self.inputs = inputs
 
-        if inputs == 'both' or inputs == 'h':
+        if self.inputs == 'h':
+            self.h_ddot = output.inputs
+        elif self.inputs == 'alpha':
+            self.alpha_ddot = output.inputs
+        elif self.inputs == 'both':
             self.h_ddot = output.inputs[0]
-        else:
-            self.alpha_ddot = output.inputs[0]
-        if inputs == 'both':
             self.alpha_ddot = output.inputs[1]
 
     def state_plot(self):
