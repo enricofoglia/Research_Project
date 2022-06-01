@@ -70,6 +70,8 @@ model.print()
 
 # for now comparison is made with the same inputs as the training data;
 # # later we will need some proper validation procedures
+
+# simulating the output of the identified model
 x_model = model.simulate(x0=np.zeros((7, )), t=data.t, u=u_MISO.T)
 
 # plot of the Theodorsen function states
