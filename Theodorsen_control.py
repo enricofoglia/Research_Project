@@ -135,15 +135,47 @@ class TheodorsenTimeResponse:
                     self.x[:, i] + self.sys.B @ self.u[:, i]
 
     def state_plot(self):
-        '''Plot of the C_L response together with physicaly meanignful states.'''
-        plt.plot(self.t, self.C_L, label=r'$C_L [-]$')
+        '''Plot the C_L response together with physicaly meanignful states.'''
+
+        # C_L
+        plt.subplot(3,1,1)
+        plt.plot(self.t, self.C_L)
+        plt.title('Time response of unsteady lift - states')
+        plt.ylabel(r'$C_L [-]$')
+        plt.tick_params('x', labelbottom=False)
+        plt.grid()
+
+        # angles and h' (equivalent to an angle) 
+        plt.subplot(3,1,2)
         plt.plot(self.t, self.h_dot, label=r'$\dot{h} [m/s]$')
         plt.plot(self.t, self.alpha, label=r'$\alpha [rad]$')
         plt.plot(self.t, self.alpha_e, label=r'$\alpha_e [rad]$')
-        plt.plot(self.t, self.alpha_dot, label=r'$\dot{\alpha} [rad/s]$')
-        plt.title('Time response of unsteady lift - states')
+        plt.ylabel('angle [rad]')
+        plt.tick_params('x', labelbottom=False)
+        plt.grid()
+        plt.legend()
+
+        # alpha'
+        plt.subplot(3,1,3)
+        plt.plot(self.t, self.alpha_dot)
+        plt.ylabel(r'$\dot{\alpha} [rad/s]$')
         plt.xlabel('$t$')
         plt.legend()
+        plt.grid()
+        plt.show()
+
+    def theodorsen_state_plot(self):
+        '''Plot the Theodorsen function model states.'''
+        for i in range(4):
+            plt.subplot(4, 1, i+1)
+            if i == 0:
+                plt.title('States of the Theodorson function approximating model')
+            plt.plot(self.t, self.x_theodorsen[i,:], '-')
+            if i < 3:
+                plt.tick_params('x', labelbottom=False)
+            plt.ylabel('$x_{}$'.format(i))
+            plt.grid()
+        plt.xlabel('t [-]')
         plt.show()
 
     def phase_plot(self, state='alpha_e'):
@@ -160,20 +192,43 @@ class TheodorsenTimeResponse:
         plt.title('Phase plot of unsteady lift')
         plt.xlabel(labels[state])
         plt.ylabel('$C_L$')
+        plt.grid()
         plt.show()
 
     def io_plot(self):
         '''Plot the C_L response together with the inputs.'''
 
-        plt.plot(self.t, self.C_L, label=r'$C_L [-]$')
-        if self.inputs == 'h' or self.inputs == 'both':
-            plt.plot(self.t, self.h_ddot, label=r'$\ddot{h} [rad/s^2]$')
-        if self.inputs == 'alpha' or self.inputs == 'both':
-            plt.plot(self.t, self.alpha_ddot,
-                     label=r'$\ddot{\alpha} [rad/s^2]$')
+        if self.inputs != 'both':
+            plt.subplot(2,1,1)
+        else:
+            plt.subplot(3,1,1)
+
+        plt.plot(self.t, self.C_L)
         plt.title('Time response of unsteady lift - inputs')
+        plt.ylabel(r'$C_L [-]$')
+        plt.tick_params('x', labelbottom=False)
+        plt.grid()
+
+        if self.inputs == 'h' or self.inputs == 'alpha':
+            plt.subplot(2,1,2)
+        elif self.inputs == 'both':
+            plt.subplot(3,1,2)
+
+        if self.inputs == 'h' or self.inputs == 'both':
+            plt.plot(self.t, self.h_ddot)
+            plt.ylabel(r'$\ddot{h} [rad/s^2]$')
+            plt.grid()
+
+        if self.inputs == 'both':
+            plt.tick_params('x', labelbottom=False)
+            plt.subplot(3,1,3)
+
+        if self.inputs == 'alpha' or self.inputs == 'both':
+            plt.plot(self.t, self.alpha_ddot)
+            plt.ylabel(r'$\ddot{\alpha} [rad/s^2]$')
+            plt.grid()
+
         plt.xlabel('$t$')
-        plt.legend()
         plt.show()
 
 
@@ -213,6 +268,7 @@ if __name__ == '__main__':
     output = control.impulse_response(theodorsen_h_sys, T=t)
     data_h_impulse = TheodorsenTimeResponse(output, inputs='h')
     data_h_impulse.state_plot()
+    data_h_impulse.theodorsen_state_plot()
 
     # response to a harmonic alpha" signal
     omega = 1
@@ -222,6 +278,7 @@ if __name__ == '__main__':
     output = control.forced_response(theodorsen_alpha_sys, T=t, U=u_alpha)
     data_alpha_sine = TheodorsenTimeResponse(output, inputs='alpha')
     data_alpha_sine.phase_plot(state='alpha')
+    data_alpha_sine.io_plot()
 
     # response to harmonic alpha" and square h" signals
     T = 5
@@ -233,5 +290,8 @@ if __name__ == '__main__':
     u_MISO = np.vstack((u_h, u_alpha))
     output = control.forced_response(
         theodorsen_full_sys, T=t, U=u_MISO)
-    data_both = TheodorsenTimeResponse(output, inputs='alpha')
+    data_both = TheodorsenTimeResponse(output, inputs='both')
     data_both.phase_plot(state='alpha_e')
+    data_both.io_plot()
+    data_both.state_plot()
+    data_both.theodorsen_state_plot()
