@@ -11,6 +11,7 @@
 import numpy as np
 import pysindy as ps
 import matplotlib.pyplot as plt
+from PolynomialChaos import *
 
 def clean_data(data, tol = 2):
     '''
@@ -177,8 +178,27 @@ if __name__ == '__main__':
     x = 1 - cleaned_wagner_data[:,1] # normalized, steady-state-subtracted lift (see reference [1])
     x = np.array([x]).T
     
+    # Generation of aPC library
+    aPC_Wagner = PolynomialChaos(
+        x,
+        expansionDegree = 8,
+        numberOfInputs = 1)
+    aPC_Wagner.ComputeCoefficients()
+    coefficients = aPC_Wagner.coefficients
+    # for i in range(9):
+    #     for j in range(9):
+    #         if np.abs(coefficients[i,j,0]) < 0.1:
+    #             coefficients[i,j,0] = 0
+    AlphaMatrix = aPC_Wagner.AlphaMatrix
+    
+    LibraryList = GenerateLibraryList(
+        expansionDegree=8,
+        coefficients = coefficients,
+        AlphaMatrix = AlphaMatrix)
+    
+    
     # calculating L(t) pdf
-    nb_bins = 100 # number of bins
+    nb_bins = 20 # number of bins
     fig_h, ax_h = plt.subplots()
     ax_h.hist(cleaned_wagner_data[:,1], nb_bins, density = True)
     ax_h.set_xlabel('L(t)')
@@ -194,8 +214,9 @@ if __name__ == '__main__':
     
     for deg in range(0,9):
     	# fitting model
-        optimizer = ps.optimizers.stlsq.STLSQ(threshold = 0.1, alpha = 1e-06, max_iter = 10)
-        library = ps.feature_library.polynomial_library.PolynomialLibrary(degree = deg)
+        optimizer = ps.optimizers.stlsq.STLSQ(threshold = 0.1, alpha = 1e-05, max_iter = 50)
+        #library = ps.feature_library.polynomial_library.PolynomialLibrary(degree = deg)
+        library = ps.feature_library.custom_library.CustomLibrary(LibraryList[0:deg+1])
         model = ps.SINDy(optimizer = optimizer, 
        				     feature_library = library,
        				     feature_names = ['phi']) # default paramaters:
