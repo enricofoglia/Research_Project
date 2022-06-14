@@ -41,7 +41,11 @@ def theodorsen_function_balanced_truncation_ss():
         sys - a control.StateSpace representing the Theodorsen function approximation
 
         The state-space model is of the form x' = Ax + Bu, y = Cx + Du.
-        The matrices have been copied from Brunton & Rowley, 2013.
+
+        The matrices have been copied from:
+        S. L. Brunton and C. W. Rowley, ‘Empirical state-space representations for Theodorsen’s lift model’,
+        Journal of Fluids and Structures, vol. 38, pp. 174–186, april 2013, doi: 10.1016/j.jfluidstructs.2012.10.005.
+
 
         For reference on the contro.StateSpace class, see:
         https://python-control.readthedocs.io/en/0.9.1/generated/control.StateSpace.html#control.StateSpace'''
@@ -68,7 +72,10 @@ def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both'):
     sys - a control.StateSpace representing the Theodorsen function approximation
 
     The state-space model is of the form x' = Ax + Bu, y = Cx + Du.
-    The matrices have been copied from Brunton & Rowley, 2013.
+
+    The matrices have been copied from:
+    S. L. Brunton and C. W. Rowley, ‘Empirical state-space representations for Theodorsen’s lift model’,
+    Journal of Fluids and Structures, vol. 38, pp. 174–186, april 2013, doi: 10.1016/j.jfluidstructs.2012.10.005.
 
     For reference on the contro.StateSpace class, see:
     https://python-control.readthedocs.io/en/0.9.1/generated/control.StateSpace.html#control.StateSpace'''
@@ -138,15 +145,15 @@ class TheodorsenTimeResponse:
         '''Plot the C_L response together with physicaly meanignful states.'''
 
         # C_L
-        plt.subplot(3,1,1)
+        plt.subplot(3, 1, 1)
         plt.plot(self.t, self.C_L)
         plt.title('Time response of unsteady lift - states')
         plt.ylabel(r'$C_L [-]$')
         plt.tick_params('x', labelbottom=False)
         plt.grid()
 
-        # angles and h' (equivalent to an angle) 
-        plt.subplot(3,1,2)
+        # angles and h' (equivalent to an angle)
+        plt.subplot(3, 1, 2)
         plt.plot(self.t, self.h_dot, label=r'$\dot{h} [m/s]$')
         plt.plot(self.t, self.alpha, label=r'$\alpha [rad]$')
         plt.plot(self.t, self.alpha_e, label=r'$\alpha_e [rad]$')
@@ -156,7 +163,7 @@ class TheodorsenTimeResponse:
         plt.legend()
 
         # alpha'
-        plt.subplot(3,1,3)
+        plt.subplot(3, 1, 3)
         plt.plot(self.t, self.alpha_dot)
         plt.ylabel(r'$\dot{\alpha} [rad/s]$')
         plt.xlabel('$t$')
@@ -169,8 +176,9 @@ class TheodorsenTimeResponse:
         for i in range(4):
             plt.subplot(4, 1, i+1)
             if i == 0:
-                plt.title('States of the Theodorson function approximating model')
-            plt.plot(self.t, self.x_theodorsen[i,:], '-')
+                plt.title(
+                    'States of the Theodorson function approximating model')
+            plt.plot(self.t, self.x_theodorsen[i, :], '-')
             if i < 3:
                 plt.tick_params('x', labelbottom=False)
             plt.ylabel('$x_{}$'.format(i))
@@ -199,9 +207,9 @@ class TheodorsenTimeResponse:
         '''Plot the C_L response together with the inputs.'''
 
         if self.inputs != 'both':
-            plt.subplot(2,1,1)
+            plt.subplot(2, 1, 1)
         else:
-            plt.subplot(3,1,1)
+            plt.subplot(3, 1, 1)
 
         plt.plot(self.t, self.C_L)
         plt.title('Time response of unsteady lift - inputs')
@@ -210,9 +218,9 @@ class TheodorsenTimeResponse:
         plt.grid()
 
         if self.inputs == 'h' or self.inputs == 'alpha':
-            plt.subplot(2,1,2)
+            plt.subplot(2, 1, 2)
         elif self.inputs == 'both':
-            plt.subplot(3,1,2)
+            plt.subplot(3, 1, 2)
 
         if self.inputs == 'h' or self.inputs == 'both':
             plt.plot(self.t, self.h_ddot)
@@ -221,7 +229,7 @@ class TheodorsenTimeResponse:
 
         if self.inputs == 'both':
             plt.tick_params('x', labelbottom=False)
-            plt.subplot(3,1,3)
+            plt.subplot(3, 1, 3)
 
         if self.inputs == 'alpha' or self.inputs == 'both':
             plt.plot(self.t, self.alpha_ddot)
