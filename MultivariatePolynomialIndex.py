@@ -7,7 +7,10 @@ Created on Sat Jun 11 14:55:25 2022
 
 This code provide the combinatory information for multivariate polynomial chaos 
 expansion. The code is the translation from Matlab to Python of the one from
-Sergey Oladyshkin (http://www.iws.uni-stuttgart.de)
+Sergey Oladyshkin (http://www.iws.uni-stuttgart.de), original code can be found at:
+Sergey Oladyshkin (2022). aPC Matlab Toolbox: Data-driven Arbitrary Polynomial Chaos 
+(https://www.mathworks.com/matlabcentral/fileexchange/72014-apc-matlab-toolbox-data-driven-arbitrary-polynomial-chaos), 
+MATLAB Central File Exchange. Retrieved June 12, 2022.
 
 A difference in the construction of UniqueDegreeCombinations has as an effect 
 that the SortedDegreeCombinations is a bit different form the original code. It
