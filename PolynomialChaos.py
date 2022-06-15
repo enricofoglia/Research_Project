@@ -21,6 +21,8 @@ Create library object to be used with SINDy
 import numpy as np
 from MultivariatePolynomialIndex import MultivariatePolynomialIndex
 import sympy as sym
+from math import sqrt
+from math import factorial
 
 class PolynomialChaos():
     '''
@@ -61,22 +63,52 @@ class PolynomialChaos():
                     Hankel[i,-1] = 1
         return Hankel
     
-    def aPC_OneDimensional(self, distribution_1D):
+    def aPC_OneDimensional(self, distribution_1D, threshold = 0.0, normalize = True):
         '''
         Computes and returns the coefficient matrix for a 1D distribution from the 0-degree
         polynomial up to the one of degree expansionDegree.
         '''
         d = self.expansionDegree + 1
         coefficients = np.zeros((d,d))
-        for i in range(d):
+        coefficients[0,0] = 1
+        for i in range(1,d):
             H = self.MomentMatrix(distribution_1D,i)
             v = np.zeros(i+1)
             v[-1] = 1
-            coefficients[0:i+1,i] = np.linalg.solve(H,v)
+            coeff = np.linalg.solve(H,v)
+            if not normalize: 
+                coeff= self.sparsePolynomials(coeff, threshold)
+                coefficients[0:i+1,i] = coeff
+            else:
+                norm = self.PolynomialNorm(coeff, distribution_1D)
+                threshold = norm * threshold
+                coeff= self.sparsePolynomials(coeff, threshold)
+                coefficients[0:i+1,i] = coeff / sqrt(np.abs(norm)) # the abs is necessary since very small norms can be computed as negative
         # coefficients = np.reshape(coefficients,(d,d,1))
         return coefficients
+    
+    def sparsePolynomials(self, coeff, threshold):
+        '''
+        Retain only those terms that are bigger then a threshold
+        '''
+        c = coeff
+        big_ind = np.abs(c) >= threshold
+        c[~big_ind] = 0
+        return c
+    
+    def PolynomialNorm(self, coefficients, distribution_1D):
+        '''
+        Compute the l-2 norm of a polynomial given the distribution of the inputs 
+        and the array of coefficients
+        '''
+        coeff = np.outer(coefficients, coefficients)
+        moments = self.ComputeMoments(distribution_1D)
+        for i in range(len(coefficients)):
+            for j in range(len(coefficients)):
+                coeff[i,j] = coeff[i,j] * moments[i+j]
+        return np.sum(coeff)
 
-    def ComputeCoefficients(self):
+    def ComputeCoefficients(self, threshold = 0.0, normalize = True):
         '''
         Computes the coefficient for the PC expansion (in general multidimensional).
         Makes use of the MultivariatePolynomialsIndex function to generate the 
@@ -90,14 +122,18 @@ class PolynomialChaos():
             - the third the variable (from 1 to numberOfInputs)
         '''
         d = self.expansionDegree + 1
+        
         if self.numberOfInputs == 1:
-            self.coefficients = np.reshape(self.aPC_OneDimensional(self.distribution), (d,d,1))
+            self.coefficients = np.reshape(self.aPC_OneDimensional(self.distribution, normalize), (d,d,1))
+            
             self.AlphaMatrix = np.array([range(d)]).T
         else:
-            self.coefficients = np.zeros((d,d, numberOfInputs))
-            for i in range(numberOfInputs):
-                self.coefficients[:,:,i] = self.aPC_OneDimensional(self.distribution[:,i])
-            self.AlphaMatrix = MultivariatePolynomialIndex(numberOfInputs, d-1)
+            self.coefficients = np.zeros((d,d, self.numberOfInputs))
+            for i in range(self.numberOfInputs):
+                self.coefficients[:,:,i] = self.aPC_OneDimensional(self.distribution[:,i],threshold, normalize)
+                
+
+            self.AlphaMatrix = MultivariatePolynomialIndex(self.numberOfInputs, d-1)
 
             
 def GenerateLibraryList(
@@ -142,7 +178,7 @@ if __name__ == '__main__':
     numberOfInputs = 3
     
     aPC = PolynomialChaos(data, expansionDegree, numberOfInputs)
-    aPC.ComputeCoefficients()
+    aPC.ComputeCoefficients(normalize=False, threshold = 1e-6)
     coefficients = aPC.coefficients
     A = aPC.AlphaMatrix
     

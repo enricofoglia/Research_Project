@@ -215,8 +215,8 @@ if __name__ == '__main__':
     for deg in range(0,9):
     	# fitting model
         optimizer = ps.optimizers.stlsq.STLSQ(threshold = 0.1, alpha = 1e-05, max_iter = 50)
-        #library = ps.feature_library.polynomial_library.PolynomialLibrary(degree = deg)
-        library = ps.feature_library.custom_library.CustomLibrary(LibraryList[0:deg+1])
+        library = ps.feature_library.polynomial_library.PolynomialLibrary(degree = deg)
+        # library = ps.feature_library.custom_library.CustomLibrary(LibraryList[0:deg+1])
         model = ps.SINDy(optimizer = optimizer, 
        				     feature_library = library,
        				     feature_names = ['phi']) # default paramaters:

@@ -125,3 +125,6 @@ simulator.sublime-project
 
 # QQmlEngine QML Cache
 *.qmlc
+
+# My personal files
+SINDy_HowTheHell.md
