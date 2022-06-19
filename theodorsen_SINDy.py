@@ -8,6 +8,7 @@ import numpy as np
 import control
 import Theodorsen_control as theodorsen
 import pysindy
+import signals
 
 # GEOMETRY
 
@@ -27,21 +28,23 @@ theodorsen_full_sys = theodorsen.unsteady_lift_ss(
 
 # INPUT SIGNALS
 
-# harmonic alpha" signal
+# alpha" signal
 t = np.linspace(0, 50, 1000)
-omega = 1
-amplitude_alpha = 0.01
-phase = np.pi/2
-u_alpha = amplitude_alpha*np.sin(omega*t + phase)
+# u_alpha = signals.linear_chirp(t, omega_init=10, omega_end=0.1, amplitude=0.01)
+u_alpha = signals.prbs(t, dt=0.3, min=-0.01, max=0.01)
+# u_alpha = signals.square_wave(t, T=3, phase=1.5, amplitude=0.01)
+# u_alpha = signals.white_noise(t, sigma=0.01, mean=0)
+# u_alpha = signals.white_noise_averaged(
+#    t, sigma=0.01, mean=0, averaging_radius=5)
 
-# square wave h" signal
-T_h = 5
-phase_h = T_h/2
-amplitude_h = 0.01/T_h
-u_h = np.array([amplitude_h if np.floor((ti + phase_h)/T_h) %
-                2 == 0 else -amplitude_h for ti in t])
+# h" signal
+# u_h = signals.linear_chirp(t, omega_init=7, omega_end=0.8, amplitude=0.01)
+u_h = signals.prbs(t, dt=0.3, min=-0.01, max=0.01)
+# u_h = signals.square_wave(t, T=3.7, phase=0, amplitude=0.01)
+# u_h = signals.white_noise(t, sigma=0.01, mean=0)
+# u_h = signals.white_noise_averaged(t, sigma=0.02, mean=0, averaging_radius=3)
 
-u_MISO = np.vstack((u_h, u_alpha))
+u_MISO = np.vstack((u_h.T, u_alpha.T))
 
 # TIME RESPONSE
 
@@ -53,13 +56,16 @@ output = control.forced_response(
 data = theodorsen.TheodorsenTimeResponse(
     output, inputs='both', sys=theodorsen_full_sys)
 
+data.io_plot()
+
 # SYSTEM IDENTIFCATION
 
 # the optimizer has no thresholding for now, so it's basically least squares:
-optimizer = pysindy.optimizers.stlsq.STLSQ(threshold=0)
+optimizer = pysindy.optimizers.stlsq.STLSQ(threshold=1e-3)
 # the model is fitted with 1st order polynomials, since we're reproducing a linear system;
 # in theory, 0-th order terms are not necessary, but their coefficients are small as of now
-model = pysindy.SINDy(optimizer=optimizer, feature_library=pysindy.PolynomialLibrary(degree=1))
+model = pysindy.SINDy(optimizer=optimizer,
+                      feature_library=pysindy.PolynomialLibrary(degree=1))
 # in theory this should work better, but at the moment the results are wrong; TODO check why:
 # model.fit(data.x.T, t=data.t, x_dot=data.x_dot.T, u=u_MISO.T)
 model.fit(data.x.T, t=data.t, u=u_MISO.T)
@@ -79,8 +85,9 @@ for i in range(4):
     plt.subplot(4, 1, i+1)
     if i == 0:
         plt.title('States of the Theodorson function approximating model')
-    plt.plot(data.t[:-1], data.x_theodorsen[i,:-1], '-', label='$x_{}$ model'.format(i))
-    plt.plot(data.t[:-1], x_model[:,i], '--', label='$x_{}$ SINDy'.format(i))
+    plt.plot(data.t[:-1], data.x_theodorsen[i, :-1],
+             '-', label='$x_{}$ model'.format(i))
+    plt.plot(data.t[:-1], x_model[:, i], '--', label='$x_{}$ SINDy'.format(i))
     if i < 3:
         plt.tick_params('x', labelbottom=False)
     plt.ylabel('$x_{}$'.format(i))
@@ -94,21 +101,31 @@ plt.subplot(3, 1, 1)
 plt.title('Physical states of the system')
 plt.tick_params('x', labelbottom=False)
 plt.plot(data.t[:-1], data.h_dot[:-1], '-', label='model')
-plt.plot(data.t[:-1], x_model[:,4], '--', label='SINDy')
+plt.plot(data.t[:-1], x_model[:, 4], '--', label='SINDy')
 plt.ylabel(r'$\dot{h}$')
 plt.legend()
 # alpha
 plt.subplot(3, 1, 2)
 plt.tick_params('x', labelbottom=False)
 plt.plot(data.t[:-1], data.alpha[:-1], '-', label='model')
-plt.plot(data.t[:-1], x_model[:,5], '--', label='SINDy')
+plt.plot(data.t[:-1], x_model[:, 5], '--', label='SINDy')
 plt.ylabel(r'$\alpha$')
 plt.legend()
 # alpha'
 plt.subplot(3, 1, 3)
 plt.plot(data.t[:-1], data.alpha_dot[:-1], '-', label='model')
-plt.plot(data.t[:-1], x_model[:,6], '--', label='SINDy')
+plt.plot(data.t[:-1], x_model[:, 6], '--', label='SINDy')
 plt.xlabel('t [-]')
 plt.ylabel(r'$\dot{\alpha}$')
+plt.legend()
+plt.show()
+# C_L
+# C_L_SINDy computed using the true C and D, because this usecase of SINDy does not estimate them
+C_L_SINDy = (theodorsen_full_sys.C @ x_model.T).T + \
+    (theodorsen_full_sys.D @ data.u[:, :-1]).T
+plt.plot(data.t[:-1], data.C_L[:-1], '-', label='model')
+plt.plot(data.t[:-1], C_L_SINDy, '--', label='SINDy')
+plt.xlabel('t [-]')
+plt.ylabel('$C_L$')
 plt.legend()
 plt.show()
