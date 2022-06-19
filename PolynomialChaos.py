@@ -134,12 +134,57 @@ class PolynomialChaos():
                 
 
             self.AlphaMatrix = MultivariatePolynomialIndex(self.numberOfInputs, d-1)
-
+            
+    def _get_feature_names(self, namelist = None):
+        N = self.AlphaMatrix.shape[1]
+        
+        if namelist == None: # generate default names
+            namelist = [f'x{i}' for i in range(N)]
+        self.feature_names = []    
+        num = 0
+        for row in self.AlphaMatrix:
+            inds = np.where(row)[0]
+            if len(inds):
+                coeff = self.coefficients[:,row[inds], inds]
+                # print('----- feature: ------')
+                # print(coeff)
+                name = f"f{num}: "
+                for i in range(len(inds)):
+                    varname = namelist[inds[i]]
+                    exps = np.where(coeff[:,i])[0]
+                    varcoeffs = coeff[exps,i]
+                    name += '('
+                    name += " + ".join('%0.3f%s^%d' % (coef, varname, exp)
+                              if exp > 1
+                              else '%0.3f%s' % (coef, varname) if exp == 1
+                              else '%0.3f' % coef
+                              for coef, exp in zip(varcoeffs, exps)
+                              )
+                    name += ')'
+                    
+            else:
+                name = "f0: 1"
+            self.feature_names.append(name)
+            num += 1
+        
+        return self.feature_names
+    
+    def printFeatureNames(self, nameList = None):
+        try:
+            for name in self.feature_names:
+                print(name)
+        except:
+            names = self._get_feature_names(nameList)
+            for name in names:
+                print(name)
+            
+        
             
 def GenerateLibraryList(
         expansionDegree,
         coefficients,
-        AlphaMatrix
+        AlphaMatrix,
+        intercept = True
         ):
     '''
     Given the Alpha matrix and the coefficient tensor conputes a list of functions
@@ -148,8 +193,12 @@ def GenerateLibraryList(
     M , numberOfInputs = AlphaMatrix.shape # M = total number of terms in the expansion
     x = []
     for i in range(numberOfInputs): x.append(sym.symbols(f'x{i}')) # list of symbolic variables
+    
     LibraryList = []
-    for i in range(M): # order
+    if intercept:
+        LibraryList.append(lambda *x: 1)
+    
+    for i in range(1, M): # order
         index = AlphaMatrix[i,:]
         MultivariatePolynomial = 1
         for j in range(numberOfInputs): # variable
@@ -174,15 +223,18 @@ if __name__ == '__main__':
     data[:,1] = np.random.randn(n)
     data[:,2] = np.random.randn(n)
     
-    expansionDegree = 5
+    expansionDegree = 2
     numberOfInputs = 3
     
     aPC = PolynomialChaos(data, expansionDegree, numberOfInputs)
     aPC.ComputeCoefficients(normalize=False, threshold = 1e-6)
     coefficients = aPC.coefficients
     A = aPC.AlphaMatrix
+    # features_names = aPC._get_feature_names()
+    aPC.printFeatureNames()
     
     LibraryList = GenerateLibraryList(5, coefficients, A)
+    
     
     
     

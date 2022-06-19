@@ -238,7 +238,29 @@ class TheodorsenTimeResponse:
 
         plt.xlabel('$t$')
         plt.show()
-
+        
+def sinusoidalInputs(
+        t, # time vector
+        amp_scale, # maximum amplitude
+        N, # number of terms
+        second_derivative = True 
+        ):
+    coeff = amp_scale * np.random.rand(N,1)
+    f = 0
+    df = 0
+    if second_derivative: ddf = 0
+    
+    for i in range(1, N+1):
+        f += coeff[i-1] * np.sin(i * t)
+        df += coeff[i-1] * i * np.cos(i * t)
+        if second_derivative:
+            ddf -= coeff[i-1] * i**2 * np.sin(i * t)
+    
+    if second_derivative:
+        return [f, df, ddf], np.array([0, df[0], 0])
+    else:
+        return [f, df], np.array([0, df[0]])
+        
 
 # example script using the library
 if __name__ == '__main__':
@@ -283,7 +305,10 @@ if __name__ == '__main__':
     amplitude = 0.1
     phase = np.pi/2
     u_alpha = amplitude*np.sin(omega*t + phase)
-    output = control.forced_response(theodorsen_alpha_sys, T=t, U=u_alpha)
+    output = control.forced_response(
+        theodorsen_alpha_sys, 
+        T=t, 
+        U=u_alpha)
     data_alpha_sine = TheodorsenTimeResponse(output, inputs='alpha')
     data_alpha_sine.phase_plot(state='alpha')
     data_alpha_sine.io_plot()
@@ -297,7 +322,9 @@ if __name__ == '__main__':
                    2 == 0 else -amplitude for ti in t])
     u_MISO = np.vstack((u_h, u_alpha))
     output = control.forced_response(
-        theodorsen_full_sys, T=t, U=u_MISO)
+        theodorsen_full_sys, 
+        T=t, 
+        U=u_MISO)
     data_both = TheodorsenTimeResponse(output, inputs='both')
     data_both.phase_plot(state='alpha_e')
     data_both.io_plot()
