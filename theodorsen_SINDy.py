@@ -9,6 +9,7 @@ import control
 import Theodorsen_control as theodorsen
 import pysindy
 import signals
+import sklearn as sk
 
 # GEOMETRY
 
@@ -29,18 +30,18 @@ theodorsen_full_sys = theodorsen.unsteady_lift_ss(
 # INPUT SIGNALS
 
 # alpha" signal
-t = np.linspace(0, 50, 1000)
-# u_alpha = signals.linear_chirp(t, omega_init=10, omega_end=0.1, amplitude=0.01)
-u_alpha = signals.prbs(t, dt=0.3, min=-0.01, max=0.01)
-# u_alpha = signals.square_wave(t, T=3, phase=1.5, amplitude=0.01)
+t = np.linspace(0, 20, 1000)
+u_alpha = signals.linear_chirp(t, omega_init=50, omega_end=0.1, amplitude=0.01)
+# u_alpha = signals.prbs(t, dt=1, min=-0.001, max=0.001)
+# u_alpha = signals.square_wave(t, T=10, phase=5, amplitude=0.001)
 # u_alpha = signals.white_noise(t, sigma=0.01, mean=0)
 # u_alpha = signals.white_noise_averaged(
-#    t, sigma=0.01, mean=0, averaging_radius=5)
+#     t, sigma=0.001, mean=0, averaging_radius=5)
 
 # h" signal
-# u_h = signals.linear_chirp(t, omega_init=7, omega_end=0.8, amplitude=0.01)
-u_h = signals.prbs(t, dt=0.3, min=-0.01, max=0.01)
-# u_h = signals.square_wave(t, T=3.7, phase=0, amplitude=0.01)
+# u_h = signals.linear_chirp(t, omega_init=37, omega_end=0.4, amplitude=0.01)
+u_h = signals.prbs(t, dt=0.1, min=-0.01, max=0.01)
+# u_h = signals.square_wave(t, T=14, phase=-7, amplitude=0.001)
 # u_h = signals.white_noise(t, sigma=0.01, mean=0)
 # u_h = signals.white_noise_averaged(t, sigma=0.02, mean=0, averaging_radius=3)
 
@@ -60,8 +61,13 @@ data.io_plot()
 
 # SYSTEM IDENTIFCATION
 
+AB = np.zeros((7, 10))
+AB[:7, 1:8] = theodorsen_full_sys.A
+AB[:7, 8:] = theodorsen_full_sys.B
+
 # the optimizer has no thresholding for now, so it's basically least squares:
-optimizer = pysindy.optimizers.stlsq.STLSQ(threshold=1e-3)
+optimizer = pysindy.optimizers.stlsq.STLSQ(
+    threshold=1e-2, initial_guess=AB)
 # the model is fitted with 1st order polynomials, since we're reproducing a linear system;
 # in theory, 0-th order terms are not necessary, but their coefficients are small as of now
 model = pysindy.SINDy(optimizer=optimizer,
@@ -123,9 +129,29 @@ plt.show()
 # C_L_SINDy computed using the true C and D, because this usecase of SINDy does not estimate them
 C_L_SINDy = (theodorsen_full_sys.C @ x_model.T).T + \
     (theodorsen_full_sys.D @ data.u[:, :-1]).T
+rmse = sk.metrics.mean_squared_error(data.C_L[:-1], C_L_SINDy, squared=False)
+plt.subplot(4, 1, 1)
 plt.plot(data.t[:-1], data.C_L[:-1], '-', label='model')
 plt.plot(data.t[:-1], C_L_SINDy, '--', label='SINDy')
-plt.xlabel('t [-]')
+plt.title('RMSE = {:.2e}'.format(rmse))
 plt.ylabel('$C_L$')
 plt.legend()
+
+plt.subplot(4, 1, 2)
+plt.plot(data.t[:-1], C_L_SINDy - data.C_L[:-1], '-')
+plt.ylabel('$\Delta C_L$')
+plt.legend()
+
+plt.subplot(4, 1, 3)
+C_L_x_SINDy = (theodorsen_full_sys.C @ x_model.T).T
+Du = (theodorsen_full_sys.D @ data.u).T
+plt.plot(data.t[:-1], data.C_L[:-1] - Du[:-1], '-', label='model')
+plt.plot(data.t[:-1], C_L_x_SINDy, '--', label='SINDy')
+plt.ylabel('$C_L - Du$')
+plt.legend()
+
+plt.subplot(4, 1, 4)
+plt.plot(data.t[:-1], Du[:-1], '-')
+plt.ylabel('$Du$')
+plt.xlabel('t [-]')
 plt.show()
