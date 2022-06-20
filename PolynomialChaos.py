@@ -43,7 +43,7 @@ class PolynomialChaos():
         could be useful for a furteher versions that implement normalization in 
         order to have orthonormal base)
         '''
-        numberOfSamples = len(distribution_1D)
+        numberOfSamples = distribution_1D.shape[0]
         DistributionMoments = np.array([np.sum(distribution_1D**i)/numberOfSamples for i in range((self.expansionDegree+1)*2)])
         return DistributionMoments
         
@@ -124,13 +124,17 @@ class PolynomialChaos():
         d = self.expansionDegree + 1
         
         if self.numberOfInputs == 1:
-            self.coefficients = np.reshape(self.aPC_OneDimensional(self.distribution, normalize), (d,d,1))
+            self.coefficients = np.reshape(self.aPC_OneDimensional(self.distribution,
+                                                                   threshold = threshold,
+                                                                   normalize = normalize), (d,d,1))
             
             self.AlphaMatrix = np.array([range(d)]).T
         else:
             self.coefficients = np.zeros((d,d, self.numberOfInputs))
             for i in range(self.numberOfInputs):
-                self.coefficients[:,:,i] = self.aPC_OneDimensional(self.distribution[:,i],threshold, normalize)
+                self.coefficients[:,:,i] = self.aPC_OneDimensional(self.distribution[:,i],
+                                                                   threshold = threshold,
+                                                                   normalize = normalize)
                 
 
             self.AlphaMatrix = MultivariatePolynomialIndex(self.numberOfInputs, d-1)
@@ -215,7 +219,7 @@ def GenerateLibraryList(
 
 if __name__ == '__main__':
     np.random.seed(43)
-    n = 1000
+    n = 10000
     data = np.zeros((n,3))
     data_uniform = np.linspace(-1,1,n)
     data_uniform = np.array([data_uniform])
@@ -224,16 +228,16 @@ if __name__ == '__main__':
     data[:,2] = np.random.randn(n)
     
     expansionDegree = 2
-    numberOfInputs = 3
+    numberOfInputs = 1
     
-    aPC = PolynomialChaos(data, expansionDegree, numberOfInputs)
-    aPC.ComputeCoefficients(normalize=False, threshold = 1e-6)
+    aPC = PolynomialChaos(data_uniform.T, expansionDegree, numberOfInputs)
+    aPC.ComputeCoefficients(threshold = 0.0, normalize=True)
     coefficients = aPC.coefficients
     A = aPC.AlphaMatrix
     # features_names = aPC._get_feature_names()
     aPC.printFeatureNames()
     
-    LibraryList = GenerateLibraryList(5, coefficients, A)
+    LibraryList = GenerateLibraryList(expansionDegree, coefficients, A)
     
     
     
