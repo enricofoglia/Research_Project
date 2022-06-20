@@ -119,7 +119,7 @@ aPC = PolynomialChaos(
      X_train,
      expansionDegree = expansionDegree,
      numberOfInputs = 4)
-aPC.ComputeCoefficients(threshold =0.01, normalize = True)
+aPC.ComputeCoefficients(threshold =0.01, normalize = False)
 coefficients = aPC.coefficients
 AlphaMatrix = aPC.AlphaMatrix
  
