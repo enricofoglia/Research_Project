@@ -77,17 +77,17 @@ class PolynomialChaos():
             v[-1] = 1
             coeff = np.linalg.solve(H,v)
             if not normalize: 
-                coeff= self.sparsePolynomials(coeff, threshold)
+                coeff= self._sparsePolynomials(coeff, threshold)
                 coefficients[0:i+1,i] = coeff
             else:
                 norm = self.PolynomialNorm(coeff, distribution_1D)
                 threshold = norm * threshold
-                coeff= self.sparsePolynomials(coeff, threshold)
+                coeff= self._sparsePolynomials(coeff, threshold)
                 coefficients[0:i+1,i] = coeff / sqrt(np.abs(norm)) # the abs is necessary since very small norms can be computed as negative
         # coefficients = np.reshape(coefficients,(d,d,1))
         return coefficients
     
-    def sparsePolynomials(self, coeff, threshold):
+    def _sparsePolynomials(self, coeff, threshold):
         '''
         Retain only those terms that are bigger then a threshold
         '''

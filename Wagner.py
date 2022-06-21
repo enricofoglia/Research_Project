@@ -94,6 +94,8 @@ if __name__ == '__main__':
                 W[i] = Wagner(t, large_times = False)
             else:
                 W[i] = Wagner(t, large_times = True)   
+        wagner_data = np.column_stack((T,W))
+        np.savetxt('wagner_data_loglog.dat', wagner_data) 
     
     # generate data for wagner_SINDy.py
     if SAVE_FLAG == 'y':

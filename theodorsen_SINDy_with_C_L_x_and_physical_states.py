@@ -131,7 +131,7 @@ optimizer = pysindy.optimizers.stlsq.STLSQ(
 # the model is fitted with 1st order polynomials, since we're reproducing a linear system;
 # in theory, 0-th order terms are not necessary, but their coefficients are small as of now
 model = pysindy.SINDy(optimizer=optimizer,
-                      feature_library=pysindy.PolynomialLibrary(degree=2))
+                      feature_library=pysindy.PolynomialLibrary(degree=1))
 # in theory this should work better, but at the moment the results are wrong; TODO check why:
 # model.fit(data.x.T, t=data.t, x_dot=data.x_dot.T, u=u_MISO.T)
 
