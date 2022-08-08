@@ -92,8 +92,8 @@ def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both', minimal=False):
         B = np.zeros((dim_theodorsen+2, 2))
         B[dim_theodorsen, 0] = 1
         B[-1, -1] = 1
-        C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2, theodorsen_sys.D*airfoil.C_2,
-                    airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
+        C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2,
+            airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
         D = np.array([airfoil.C_1, -airfoil.C_1*airfoil.a])
     else:
         # state-space model with AoA and h' as states
@@ -104,7 +104,7 @@ def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both', minimal=False):
         B = np.zeros((dim_theodorsen+3, 2))
         B[dim_theodorsen, 0] = 1
         B[-1, -1] = 1
-        C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2,
+        C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2, theodorsen_sys.D*airfoil.C_2,
                     airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
         D = np.array([airfoil.C_1, -airfoil.C_1*airfoil.a])
 
