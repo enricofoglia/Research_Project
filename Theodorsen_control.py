@@ -60,13 +60,14 @@ def theodorsen_function_balanced_truncation_ss():
     return sys
 
 
-def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both'):
+def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both', minimal=False):
     '''Return a state-space approximation of the Theodorsen non-dimensionalised unsteady lift model.
 
     Input:
     airfoil - an AirfoilGeometry object with dimensions and aerodynamic coefficients of the airfoil
     theodorsen_sys - a state-space model of the Theodorsen function
     inputs - the inputs to the system: either 'h', 'alpha' or (by default) 'both'
+    minimal - if True, uses the effective angle of attack as a state instead of AoA and h'
 
     Output:
     sys - a control.StateSpace representing the Theodorsen function approximation
@@ -81,16 +82,31 @@ def unsteady_lift_ss(airfoil, theodorsen_sys, inputs='both'):
     https://python-control.readthedocs.io/en/0.9.1/generated/control.StateSpace.html#control.StateSpace'''
 
     dim_theodorsen = theodorsen_sys.nstates
-    A = np.hstack((theodorsen_sys.A, theodorsen_sys.B*airfoil.C_2, theodorsen_sys.B *
-                  airfoil.C_2, theodorsen_sys.B*airfoil.C_2*(1-2*airfoil.a)/2))
-    A = np.vstack((A, np.zeros((3, dim_theodorsen+3))))
-    A[-2, -1] = 1
-    B = np.zeros((dim_theodorsen+3, 2))
-    B[dim_theodorsen, 0] = 1
-    B[-1, -1] = 1
-    C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2, theodorsen_sys.D*airfoil.C_2,
-                   airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
-    D = np.array([airfoil.C_1, -airfoil.C_1*airfoil.a])
+
+    if minimal:
+        # state-space model with effective AoA as state
+        A = np.hstack((theodorsen_sys.A, theodorsen_sys.B *airfoil.C_2,
+            theodorsen_sys.B*airfoil.C_2*(1-2*airfoil.a)/2))
+        A = np.vstack((A, np.zeros((2, dim_theodorsen+2))))
+        A[-2, -1] = 1
+        B = np.zeros((dim_theodorsen+2, 2))
+        B[dim_theodorsen, 0] = 1
+        B[-1, -1] = 1
+        C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2, theodorsen_sys.D*airfoil.C_2,
+                    airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
+        D = np.array([airfoil.C_1, -airfoil.C_1*airfoil.a])
+    else:
+        # state-space model with AoA and h' as states
+        A = np.hstack((theodorsen_sys.A, theodorsen_sys.B*airfoil.C_2, theodorsen_sys.B *
+                    airfoil.C_2, theodorsen_sys.B*airfoil.C_2*(1-2*airfoil.a)/2))
+        A = np.vstack((A, np.zeros((3, dim_theodorsen+3))))
+        A[-2, -1] = 1
+        B = np.zeros((dim_theodorsen+3, 2))
+        B[dim_theodorsen, 0] = 1
+        B[-1, -1] = 1
+        C = np.hstack((theodorsen_sys.C, theodorsen_sys.D*airfoil.C_2,
+                    airfoil.C_1 + theodorsen_sys.D*airfoil.C_2*(1-2*airfoil.a)/2))
+        D = np.array([airfoil.C_1, -airfoil.C_1*airfoil.a])
 
     if inputs == 'both':
         # LTI model of the Theodorsen model with h" and α" inputs
